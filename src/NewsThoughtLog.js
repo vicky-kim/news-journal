@@ -9,10 +9,13 @@ import {
   query,
   orderBy,
 } from "firebase/firestore";
+import { getAuth, onAuthStateChanged } from "firebase/auth";
+import Auth from "./Auth";
+import SignUp from "./SignUp";
 
-// 🔥 Firebase 설정
+// Firebase 설정
 const firebaseConfig = {
-  apiKey: "AIzaSyAsCOlQjlJ_g9QRPOYrkp1tvoh6SDWlAwA",
+apiKey: "AIzaSyAsCOlQjlJ_g9QRPOYrkp1tvoh6SDWlAwA",
   authDomain: "helloworld-17af4.firebaseapp.com",
   projectId: "helloworld-17af4",
   storageBucket: "helloworld-17af4.firebasestorage.app",
@@ -30,7 +33,18 @@ export default function NewsThoughtLog() {
   const [newsLink, setNewsLink] = useState("");
   const [thoughts, setThoughts] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
+  const [user, setUser] = useState(null);
 
+  // 로그인 상태 감지
+  useEffect(() => {
+    const auth = getAuth();
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // Firestore에서 데이터 불러오기
   useEffect(() => {
     const fetchEntries = async () => {
       const q = query(collection(db, "entries"), orderBy("createdAt", "desc"));
@@ -67,46 +81,59 @@ export default function NewsThoughtLog() {
     <div className="max-w-xl mx-auto p-4">
       <h1 className="text-2xl font-bold mb-4">📰 나의 투자 뉴스 일지</h1>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <input
-          type="text"
-          placeholder="뉴스 제목"
-          value={newsTitle}
-          onChange={(e) => setNewsTitle(e.target.value)}
-          className="w-full border p-2 rounded"
-          required
-        />
-        <input
-          type="url"
-          placeholder="뉴스 링크 (선택)"
-          value={newsLink}
-          onChange={(e) => setNewsLink(e.target.value)}
-          className="w-full border p-2 rounded"
-        />
-        <textarea
-          placeholder="나의 생각을 입력하세요"
-          value={thoughts}
-          onChange={(e) => setThoughts(e.target.value)}
-          className="w-full border p-2 rounded"
-          rows={4}
-          required
-        />
-        <button
-          type="submit"
-          className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-        >
-          기록하기
-        </button>
-      </form>
+    {/* 회원가입 UI */}
+    <SignUp />
 
+    {/* 로그인 UI */}
+    <Auth onUserChanged={setUser} />
+     
+      {/* 검색창 */}
       <input
         type="text"
         placeholder="검색어 입력 (제목 또는 생각)"
         value={searchTerm}
         onChange={(e) => setSearchTerm(e.target.value)}
-        className="w-full border p-2 rounded mt-6 mb-4"
+        className="w-full border p-2 rounded mb-4"
       />
 
+      {/* 뉴스 입력 폼 (로그인된 사용자만 작성 가능) */}
+      {user ? (
+        <form onSubmit={handleSubmit} className="space-y-4 mb-6">
+          <input
+            type="text"
+            placeholder="뉴스 제목"
+            value={newsTitle}
+            onChange={(e) => setNewsTitle(e.target.value)}
+            className="w-full border p-2 rounded"
+            required
+          />
+          <input
+            type="url"
+            placeholder="뉴스 링크 (선택)"
+            value={newsLink}
+            onChange={(e) => setNewsLink(e.target.value)}
+            className="w-full border p-2 rounded"
+          />
+          <textarea
+            placeholder="나의 생각을 입력하세요"
+            value={thoughts}
+            onChange={(e) => setThoughts(e.target.value)}
+            className="w-full border p-2 rounded"
+            rows={4}
+            required
+          />
+          <button
+            type="submit"
+            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+          >
+            기록하기
+          </button>
+        </form>
+      ) : (
+        <p className="text-gray-600 mb-6">✋ 로그인 후 뉴스 일지를 작성할 수 있습니다.</p>
+      )}
+
+      {/* 결과 목록 */}
       <div className="space-y-4">
         {entries
           .filter((entry) =>
@@ -129,7 +156,7 @@ export default function NewsThoughtLog() {
               )}
               <p className="mt-2 whitespace-pre-line">{entry.thoughts}</p>
             </div>
-          ))}
+        ))}
       </div>
     </div>
   );
