@@ -81,11 +81,12 @@ export default function NewsThoughtLog() {
     <div className="max-w-xl mx-auto p-4">
       <h1 className="text-2xl font-bold mb-4">📰 나의 투자 뉴스 일지</h1>
 
-    {/* 회원가입 UI */}
+{!user && (
+  <>
     <SignUp />
-
-    {/* 로그인 UI */}
     <Auth onUserChanged={setUser} />
+  </>
+)}
      
       {/* 검색창 */}
       <input
