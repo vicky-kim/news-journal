@@ -9,13 +9,13 @@ import {
   query,
   orderBy,
 } from "firebase/firestore";
-import { getAuth, onAuthStateChanged } from "firebase/auth";
+import { getAuth, onAuthStateChanged, signOut } from "firebase/auth";
 import Auth from "./Auth";
 import SignUp from "./SignUp";
 
 // Firebase 설정
 const firebaseConfig = {
-apiKey: "AIzaSyAsCOlQjlJ_g9QRPOYrkp1tvoh6SDWlAwA",
+  apiKey: "AIzaSyAsCOlQjlJ_g9QRPOYrkp1tvoh6SDWlAwA",
   authDomain: "helloworld-17af4.firebaseapp.com",
   projectId: "helloworld-17af4",
   storageBucket: "helloworld-17af4.firebasestorage.app",
@@ -35,7 +35,6 @@ export default function NewsThoughtLog() {
   const [searchTerm, setSearchTerm] = useState("");
   const [user, setUser] = useState(null);
 
-  // 로그인 상태 감지
   useEffect(() => {
     const auth = getAuth();
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -44,7 +43,6 @@ export default function NewsThoughtLog() {
     return () => unsubscribe();
   }, []);
 
-  // Firestore에서 데이터 불러오기
   useEffect(() => {
     const fetchEntries = async () => {
       const q = query(collection(db, "entries"), orderBy("createdAt", "desc"));
@@ -81,13 +79,27 @@ export default function NewsThoughtLog() {
     <div className="max-w-xl mx-auto p-4">
       <h1 className="text-2xl font-bold mb-4">📰 나의 투자 뉴스 일지</h1>
 
-{!user && (
-  <>
-    <SignUp />
-    <Auth onUserChanged={setUser} />
-  </>
-)}
-     
+      {/* 👤 로그인 후 사용자 정보 + 로그아웃 버튼 */}
+      {user && (
+        <div className="flex justify-between items-center mb-4">
+          <span>👋 {user.email}</span>
+          <button
+            onClick={() => signOut(getAuth())}
+            className="text-sm text-red-500 hover:underline"
+          >
+            로그아웃
+          </button>
+        </div>
+      )}
+
+      {/* 회원가입 + 로그인 (로그인 전일 때만 표시) */}
+      {!user && (
+        <>
+          <SignUp />
+          <Auth onUserChanged={setUser} />
+        </>
+      )}
+
       {/* 검색창 */}
       <input
         type="text"
@@ -97,7 +109,7 @@ export default function NewsThoughtLog() {
         className="w-full border p-2 rounded mb-4"
       />
 
-      {/* 뉴스 입력 폼 (로그인된 사용자만 작성 가능) */}
+      {/* 뉴스 입력 폼 */}
       {user ? (
         <form onSubmit={handleSubmit} className="space-y-4 mb-6">
           <input
