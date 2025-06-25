@@ -63,6 +63,9 @@ export default function NewsThoughtLog() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const auth = getAuth();
+    const currentUser = auth.currentUser;
+
     const now = new Date();
     const newEntry = {
       newsTitle,
@@ -71,6 +74,7 @@ export default function NewsThoughtLog() {
       createdAt: now,
       date: now.toLocaleDateString(),
       time: now.toLocaleTimeString(),
+      userId: currentUser.uid,
     };
 
     const docRef = await addDoc(collection(db, "entries"), newEntry);
@@ -87,106 +91,145 @@ export default function NewsThoughtLog() {
   };
 
   return (
-    <div className="max-w-xl mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-4">📰 나의 투자 뉴스 일지</h1>
+    <div className="flex justify-center px-4 py-6">
+      <div className="w-full max-w-2xl space-y-8">
 
-      {user && (
-        <div className="flex justify-between items-center mb-4">
-          <span>👋 {user.email}</span>
-          <button
-            onClick={() => signOut(getAuth())}
-            className="text-sm text-red-500 hover:underline"
-          >
-            로그아웃
-          </button>
-        </div>
-      )}
+        <header className="flex justify-between items-center">
+          <h1 className="text-3xl font-bold text-blue-600">📰 나의 투자 뉴스 일지</h1>
+          {user && (
+            <div className="text-right">
+              <p className="text-sm text-gray-700">👋 {user.email}</p>
+              <button
+                onClick={() => signOut(getAuth())}
+                className="text-xs text-red-500 hover:underline"
+              >
+                로그아웃
+              </button>
+            </div>
+          )}
+        </header>
 
-      {!user && (
-        <>
-          <SignUp />
-          <Auth onUserChanged={setUser} />
-        </>
-      )}
+        {!user && (
+          <section>
+            <SignUp />
+            <Auth onUserChanged={setUser} />
+          </section>
+        )}
 
-      <input
-        type="text"
-        placeholder="검색어 입력 (제목 또는 생각)"
-        value={searchTerm}
-        onChange={(e) => setSearchTerm(e.target.value)}
-        className="w-full border p-2 rounded mb-4"
-      />
-
-      {user ? (
-        <form onSubmit={handleSubmit} className="space-y-4 mb-6">
+        {/* 검색창 */}
+        <section className="border-t border-gray-300 pt-6">
+          <h2 className="text-lg font-semibold text-gray-700 mb-2">🔍 검색</h2>
           <input
             type="text"
-            placeholder="뉴스 제목"
-            value={newsTitle}
-            onChange={(e) => setNewsTitle(e.target.value)}
-            className="w-full border p-2 rounded"
-            required
+            placeholder="제목 또는 생각을 입력하세요"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full border border-gray-300 rounded px-3 py-2"
           />
-          <input
-            type="url"
-            placeholder="뉴스 링크 (선택)"
-            value={newsLink}
-            onChange={(e) => setNewsLink(e.target.value)}
-            className="w-full border p-2 rounded"
-          />
-          <textarea
-            placeholder="나의 생각을 입력하세요"
-            value={thoughts}
-            onChange={(e) => setThoughts(e.target.value)}
-            className="w-full border p-2 rounded"
-            rows={4}
-            required
-          />
-          <button
-            type="submit"
-            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-          >
-            기록하기
-          </button>
-        </form>
-      ) : (
-        <p className="text-gray-600 mb-6">✋ 로그인 후 뉴스 일지를 작성할 수 있습니다.</p>
-      )}
+        </section>
 
-      <div className="space-y-4">
-        {entries
-          .filter((entry) =>
-            entry.newsTitle.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            entry.thoughts.toLowerCase().includes(searchTerm.toLowerCase())
-          )
-          .map((entry) => (
-            <div key={entry.id} className="border rounded p-4 shadow">
-              <div className="text-sm text-gray-500 mb-1">
-                📅 {entry.date} 🕒 {entry.time || ""}
+        {/* 입력창 */}
+        {user && (
+          <section className="border-t border-gray-300 pt-6">
+            <h2 className="text-lg font-semibold text-blue-700 mb-3">✏️ 뉴스 기록하기</h2>
+            <form onSubmit={handleSubmit} className="space-y-3">
+              <input
+                type="text"
+                placeholder="뉴스 제목"
+                value={newsTitle}
+                onChange={(e) => setNewsTitle(e.target.value)}
+                className="w-full border rounded px-3 py-2"
+                required
+              />
+              <input
+                type="url"
+                placeholder="뉴스 링크 (선택)"
+                value={newsLink}
+                onChange={(e) => setNewsLink(e.target.value)}
+                className="w-full border rounded px-3 py-2"
+              />
+              <textarea
+                placeholder="나의 생각을 입력하세요"
+                value={thoughts}
+                onChange={(e) => setThoughts(e.target.value)}
+                className="w-full border rounded px-3 py-2"
+                rows={4}
+                required
+              />
+              <button
+                type="submit"
+                className="w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600"
+              >
+                기록하기
+              </button>
+            </form>
+          </section>
+        )}
+
+        {!user && (
+          <p className="text-center text-gray-500">
+            ✋ 로그인 후 뉴스 일지를 작성할 수 있습니다.
+          </p>
+        )}
+
+        {/* 게시글 목록 */}
+        <section className="border-t border-gray-300 pt-6 space-y-6">
+          <h2 className="text-xl font-semibold text-gray-700">📚 뉴스 목록</h2>
+          {entries
+            .filter((entry) =>
+              entry.newsTitle.toLowerCase().includes(searchTerm.toLowerCase()) ||
+              entry.thoughts.toLowerCase().includes(searchTerm.toLowerCase())
+            )
+            .map((entry) => (
+              <div
+                key={entry.id}
+                className="relative border border-gray-300 bg-white p-4 rounded-2xl shadow-md max-w-full speech-bubble"
+              >
+                <div className="text-sm text-gray-400 mb-1">
+                  📅 {entry.date} 🕒 {entry.time || ""}
+                </div>
+                <h3 className="font-semibold text-lg">{entry.newsTitle}</h3>
+                {entry.newsLink && (
+                  <a
+                    href={entry.newsLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-500 text-sm underline"
+                  >
+                    원문 보기
+                  </a>
+                )}
+                <p className="mt-2 text-gray-700 whitespace-pre-line">{entry.thoughts}</p>
+                {user && user.uid === entry.userId && (
+                  <button
+                    onClick={() => handleDelete(entry.id)}
+                    className="mt-2 text-xs text-red-500 hover:underline"
+                  >
+                    삭제하기
+                  </button>
+                )}
               </div>
-              <div className="font-semibold text-lg">{entry.newsTitle}</div>
-              {entry.newsLink && (
-                <a
-                  href={entry.newsLink}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-500 text-sm"
-                >
-                  원문 보기
-                </a>
-              )}
-              <p className="mt-2 whitespace-pre-line">{entry.thoughts}</p>
-              {user && (
-                <button
-                  onClick={() => handleDelete(entry.id)}
-                  className="mt-2 text-xs text-red-500 hover:underline"
-                >
-                  삭제하기
-                </button>
-              )}
-            </div>
-        ))}
+          ))}
+        </section>
       </div>
+
+      <style jsx>{`
+        .speech-bubble {
+          position: relative;
+          background: #fff;
+        }
+        .speech-bubble::after {
+          content: '';
+          position: absolute;
+          bottom: -10px;
+          left: 30px;
+          border-width: 10px 10px 0;
+          border-style: solid;
+          border-color: #ffffff transparent;
+          display: block;
+          width: 0;
+        }
+      `}</style>
     </div>
   );
 }
