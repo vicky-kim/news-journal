@@ -8,6 +8,8 @@ import {
   getDocs,
   query,
   orderBy,
+  deleteDoc,
+  doc,
 } from "firebase/firestore";
 import { getAuth, onAuthStateChanged, signOut } from "firebase/auth";
 import Auth from "./Auth";
@@ -44,6 +46,8 @@ export default function NewsThoughtLog() {
   }, []);
 
   useEffect(() => {
+    if (!user) return;
+
     const fetchEntries = async () => {
       const q = query(collection(db, "entries"), orderBy("createdAt", "desc"));
       const querySnapshot = await getDocs(q);
@@ -55,16 +59,18 @@ export default function NewsThoughtLog() {
     };
 
     fetchEntries();
-  }, []);
+  }, [user]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const now = new Date();
     const newEntry = {
       newsTitle,
       newsLink,
       thoughts,
-      createdAt: new Date(),
-      date: new Date().toLocaleDateString(),
+      createdAt: now,
+      date: now.toLocaleDateString(),
+      time: now.toLocaleTimeString(),
     };
 
     const docRef = await addDoc(collection(db, "entries"), newEntry);
@@ -75,11 +81,15 @@ export default function NewsThoughtLog() {
     setThoughts("");
   };
 
+  const handleDelete = async (id) => {
+    await deleteDoc(doc(db, "entries", id));
+    setEntries(entries.filter((entry) => entry.id !== id));
+  };
+
   return (
     <div className="max-w-xl mx-auto p-4">
       <h1 className="text-2xl font-bold mb-4">📰 나의 투자 뉴스 일지</h1>
 
-      {/* 👤 로그인 후 사용자 정보 + 로그아웃 버튼 */}
       {user && (
         <div className="flex justify-between items-center mb-4">
           <span>👋 {user.email}</span>
@@ -92,7 +102,6 @@ export default function NewsThoughtLog() {
         </div>
       )}
 
-      {/* 회원가입 + 로그인 (로그인 전일 때만 표시) */}
       {!user && (
         <>
           <SignUp />
@@ -100,7 +109,6 @@ export default function NewsThoughtLog() {
         </>
       )}
 
-      {/* 검색창 */}
       <input
         type="text"
         placeholder="검색어 입력 (제목 또는 생각)"
@@ -109,7 +117,6 @@ export default function NewsThoughtLog() {
         className="w-full border p-2 rounded mb-4"
       />
 
-      {/* 뉴스 입력 폼 */}
       {user ? (
         <form onSubmit={handleSubmit} className="space-y-4 mb-6">
           <input
@@ -146,7 +153,6 @@ export default function NewsThoughtLog() {
         <p className="text-gray-600 mb-6">✋ 로그인 후 뉴스 일지를 작성할 수 있습니다.</p>
       )}
 
-      {/* 결과 목록 */}
       <div className="space-y-4">
         {entries
           .filter((entry) =>
@@ -155,7 +161,9 @@ export default function NewsThoughtLog() {
           )
           .map((entry) => (
             <div key={entry.id} className="border rounded p-4 shadow">
-              <div className="text-sm text-gray-500 mb-1">{entry.date}</div>
+              <div className="text-sm text-gray-500 mb-1">
+                📅 {entry.date} 🕒 {entry.time || ""}
+              </div>
               <div className="font-semibold text-lg">{entry.newsTitle}</div>
               {entry.newsLink && (
                 <a
@@ -168,6 +176,14 @@ export default function NewsThoughtLog() {
                 </a>
               )}
               <p className="mt-2 whitespace-pre-line">{entry.thoughts}</p>
+              {user && (
+                <button
+                  onClick={() => handleDelete(entry.id)}
+                  className="mt-2 text-xs text-red-500 hover:underline"
+                >
+                  삭제하기
+                </button>
+              )}
             </div>
         ))}
       </div>
